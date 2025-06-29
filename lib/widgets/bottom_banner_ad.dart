@@ -15,29 +15,29 @@ class _BottomBannerAdState extends State<BottomBannerAd> {
   bool _isAdLoaded = false;
 
   // ✅ 環境＆プラットフォームで広告IDを切り替えるgetter
-  // String get bannerAdUnitId {
-  //   if (Platform.isIOS) {
-  //     return kReleaseMode
-  //         ? 'ca-app-pub-6370853535798245/9845846601'  // iOS本番IDに差し替え
-  //         : 'ca-app-pub-3940256099942544/2934735716';  // iOSテストID
-  //   } else if (Platform.isAndroid) {
-  //     return kReleaseMode
-  //         ? 'ca-app-pub-6370853535798245/9845846601'  // Android本番IDに差し替え
-  //         : 'ca-app-pub-3940256099942544/6300978111';  // AndroidテストID
-  //   } else {
-  //     throw UnsupportedError("Unsupported platform");
-  //   }
-  // }
   String get bannerAdUnitId {
-    // ✅ 強制的に本番モードとして扱う（テストIDは一切使用しない）
     if (Platform.isIOS) {
-      return 'ca-app-pub-6370853535798245/9845846601';  // iOS本番ID
+      return kReleaseMode
+          ? 'ca-app-pub-6370853535798245/9845846601'  // iOS本番IDに差し替え
+          : 'ca-app-pub-3940256099942544/2934735716';  // iOSテストID
     } else if (Platform.isAndroid) {
-      return 'ca-app-pub-6370853535798245/9845846601';  // Android本番ID
+      return kReleaseMode
+          ? 'ca-app-pub-6370853535798245/9845846601'  // Android本番IDに差し替え
+          : 'ca-app-pub-3940256099942544/6300978111';  // AndroidテストID
     } else {
       throw UnsupportedError("Unsupported platform");
     }
   }
+  // String get bannerAdUnitId {
+  //   // ✅ 強制的に本番モードとして扱う（テストIDは一切使用しない）
+  //   if (Platform.isIOS) {
+  //     return 'ca-app-pub-6370853535798245/9845846601';  // iOS本番ID
+  //   } else if (Platform.isAndroid) {
+  //     return 'ca-app-pub-6370853535798245/9845846601';  // Android本番ID
+  //   } else {
+  //     throw UnsupportedError("Unsupported platform");
+  //   }
+  // }
 
 
 
