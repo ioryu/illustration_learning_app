@@ -252,7 +252,10 @@
 			<string>UIInterfaceOrientationLandscapeLeft</string>
 			<string>UIInterfaceOrientationLandscapeRight</string>
 		</array>
-
+		<key>UIDeviceFamily</key>
+		<array>
+			<integer>2</integer>
+		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
 	</dict>
