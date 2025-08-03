@@ -183,13 +183,16 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
                             },
                             onPanEnd: (_) => setState(() => isDraggingHandle = false),
                             child: Container(
-                              width: handleSize,
-                              height: handleSize,
+                              width: 20,
+                              height: 20,
+                              margin: const EdgeInsets.all(2),
                               decoration: BoxDecoration(
-                                color: Colors.blue,
-                                border: Border.all(color: Colors.white, width: 1.5),
+                                color: Colors.blue.withOpacity(0.8),
+                                borderRadius: BorderRadius.circular(4),
                               ),
+                              child: const Icon(Icons.open_in_full, size: 12, color: Colors.white),
                             ),
+
                           ),
                         ),
                       ],

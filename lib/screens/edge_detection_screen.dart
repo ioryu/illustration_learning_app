@@ -96,7 +96,7 @@ class _EdgeDetectionScreenState extends State<EdgeDetectionScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFFFBF0),
       appBar: AppBar(
-        title: const Text('線画抽出とトレス'),
+        title: const Text('トレス'),
         centerTitle: true,
         backgroundColor: const Color(0xFFFFFBF0),
         foregroundColor: Colors.black87,
