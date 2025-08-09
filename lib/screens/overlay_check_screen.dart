@@ -29,7 +29,7 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
   double copiedImageScale = 1.0;
   bool isDraggingHandle = false;
   final double handleSize = 24.0;
-  final double minScale = 0.5;
+  final double minScale = 0.1;
   final double maxScale = 3.0;
   bool _isInitialized = false;
   Size? _currentCanvasSize;

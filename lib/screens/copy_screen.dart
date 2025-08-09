@@ -80,20 +80,50 @@ class _CopyScreenState extends State<CopyScreen> {
       eraserPosition = null;
     });
   }
+  List<DrawPoint?> _resizePoints(/// リサイズ処理
+      /// points: リサイズ前のポイントリスト
+      /// fromSize: 元のキャンバスサイズ
+      /// toSize: リサイズ後のキャンバスサイズ
+      List<DrawPoint?> points,
+      Size fromSize,
+      Size toSize,
+  ) {
+    final scaleX = toSize.width / fromSize.width;
+    final scaleY = toSize.height / fromSize.height;
+
+    return points.map((p) {
+      if (p == null || p.offset == null) return null;
+      return DrawPoint(
+        Offset(p.offset!.dx * scaleX, p.offset!.dy * scaleY),
+        strokeWidth: p.strokeWidth * ((scaleX + scaleY) / 2), // 太さもスケーリング
+        // color: p.color,
+      );
+    }).toList();
+  }
+
 
   void _navigateToOverlayCheck() {
     if (userCanvasSize == null) return;
+
+    // tracedPoints を userCanvasSize 基準に変換
+    final resizedTracedPoints = _resizePoints(
+      widget.tracedPoints,
+      widget.originalSize,
+      userCanvasSize!,
+    );
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => OverlayCheckScreen(
-          tracedPoints: widget.tracedPoints,
-          copiedPoints: layers[currentLayerIndex],
-          originalSize: userCanvasSize!,
+          tracedPoints: resizedTracedPoints,           // ← リサイズ後の赤線
+          copiedPoints: layers[currentLayerIndex],     // 黒線（元データは現キャンバス基準なのでOK）
+          originalSize: userCanvasSize!,               // 次画面基準も揃える
         ),
       ),
     );
   }
+
 
   void _addNewLayer() {
     setState(() {
