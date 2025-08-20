@@ -80,26 +80,32 @@ class _CopyScreenState extends State<CopyScreen> {
       eraserPosition = null;
     });
   }
-  List<DrawPoint?> _resizePoints(/// リサイズ処理
-      /// points: リサイズ前のポイントリスト
-      /// fromSize: 元のキャンバスサイズ
-      /// toSize: リサイズ後のキャンバスサイズ
+  List<DrawPoint?> _resizePoints(
       List<DrawPoint?> points,
       Size fromSize,
       Size toSize,
   ) {
-    final scaleX = toSize.width / fromSize.width;
-    final scaleY = toSize.height / fromSize.height;
+    // 縦横比を維持したスケールを計算（短い方に合わせる）
+    final scale = (toSize.width / fromSize.width)
+        .clamp(0, double.infinity)
+        .compareTo(toSize.height / fromSize.height) < 0
+        ? toSize.width / fromSize.width
+        : toSize.height / fromSize.height;
+
+    // 中央寄せするための余白を計算
+    final offsetX = (toSize.width - fromSize.width * scale) / 2;
+    final offsetY = (toSize.height - fromSize.height * scale) / 2;
 
     return points.map((p) {
       if (p == null || p.offset == null) return null;
       return DrawPoint(
-        Offset(p.offset!.dx * scaleX, p.offset!.dy * scaleY),
-        strokeWidth: p.strokeWidth * ((scaleX + scaleY) / 2), // 太さもスケーリング
-        // color: p.color,
+        Offset(p.offset!.dx * scale + offsetX,
+              p.offset!.dy * scale + offsetY),
+        strokeWidth: p.strokeWidth * scale, // 太さも同じ倍率で拡縮
       );
     }).toList();
   }
+
 
 
   void _navigateToOverlayCheck() {
