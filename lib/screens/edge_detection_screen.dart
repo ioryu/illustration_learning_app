@@ -18,7 +18,7 @@ class _EdgeDetectionScreenState extends State<EdgeDetectionScreen> {
   Offset canvasOffset = const Offset(0, 0);
   Size? _drawingAreaSize;
   Size? newAreaSize;
-  double currentStrokeWidth = 4.0;
+  double currentStrokeWidth = 1.0;
   bool isEraserMode = false;
   Offset? eraserPosition;
   final double eraserRadius = 20.0;

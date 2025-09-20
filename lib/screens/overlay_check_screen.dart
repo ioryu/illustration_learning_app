@@ -7,6 +7,7 @@ import '../utils/user_utils.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../utils/navigation_with_ad.dart';
+import 'dart:async';  
 
 class OverlayCheckScreen extends StatefulWidget {
   final List<DrawPoint?> tracedPoints;
@@ -35,6 +36,22 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
   Size? _currentCanvasSize;
   Map<String, dynamic>? _evaluationResult;
 
+  @override
+  void initState() {
+    super.initState();
+
+    // 画面描画後にサーバ通信
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _sendEvaluationRequest().then((success) {
+        if (success) {
+          print("サーバ通信成功");
+        } else {
+          print("サーバ通信失敗");
+        }
+      });
+    });
+  }
+
   Future<bool> _sendEvaluationRequest() async {
     String uuid = await getOrCreateUUID();
     if (_currentCanvasSize == null) return false;
@@ -58,23 +75,31 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
     };
 
     try {
-      final response = await http.post(
-        Uri.parse('https://illustrationevaluation.onrender.com/evaluate'),
-        // Uri.parse('http://127.0.0.1:5000/evaluate'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(data),
-      );
-      if (response.statusCode == 200) {
-        _evaluationResult = json.decode(response.body);
-        return true;
-      }
-    } catch (e) {
-      print('通信エラー: $e');
-    }
+      // タイムアウトを10秒に設定
+      final response = await http
+          .post(
+            Uri.parse("https://example.com/evaluate"), // 実際のサーバURLに置き換える
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(data),
+          )
+          .timeout(const Duration(seconds: 10));
 
-    _showEvaluationErrorDialog();
-    return false;
+      if (response.statusCode == 200) {
+        _evaluationResult = jsonDecode(response.body);
+        return true;
+      } else {
+        print("サーバエラー: ${response.statusCode}");
+        return false;
+      }
+    } on TimeoutException catch (_) {
+      print("サーバ応答がタイムアウトしました");
+      return false;
+    } catch (e) {
+      print("サーバ通信中にエラー発生: $e");
+      return false;
+    }
   }
+
 
   void _showEvaluationErrorDialog() {
     showDialog(
@@ -88,29 +113,57 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
     );
   }
 
-  void _navigateToEvaluation() {
-    navigateWithAdEvery3rdTime(
+  void _navigateToEvaluation() async {
+    // 1. ローディング表示（画面中央）
+    showDialog(
       context: context,
-      destinationBuilder: () async {
-        final success = await _sendEvaluationRequest();
-        if (!success || _evaluationResult == null) {
-          throw Exception("評価失敗のため画面遷移を中止");
-        }
-
-        final normalizedDx = copiedImagePosition.dx - (_currentCanvasSize!.width - widget.originalSize.width) / 2;
-        final normalizedDy = copiedImagePosition.dy - (_currentCanvasSize!.height - widget.originalSize.height) / 2;
-
-        return EvaluationScreen(
-          tracedPoints: widget.tracedPoints,
-          copiedPoints: widget.copiedPoints,
-          originalSize: widget.originalSize,
-          adjustedPosition: Offset(normalizedDx, normalizedDy),
-          adjustedScale: copiedImageScale,
-          evaluationResult: _evaluationResult!,
+      barrierDismissible: false, // タップで閉じない
+      builder: (context) {
+        return const Center(
+          child: CircularProgressIndicator(),
         );
       },
     );
+
+    try {
+      // 2. 評価リクエストを送信
+      final success = await _sendEvaluationRequest();
+
+      if (!success || _evaluationResult == null) {
+        Navigator.of(context).pop(); // ローディング閉じる
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("評価に失敗しました")),
+        );
+        return;
+      }
+
+      // 3. ローディング閉じて画面遷移
+      Navigator.of(context).pop();
+
+      final normalizedDx = copiedImagePosition.dx - (_currentCanvasSize!.width - widget.originalSize.width) / 2;
+      final normalizedDy = copiedImagePosition.dy - (_currentCanvasSize!.height - widget.originalSize.height) / 2;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EvaluationScreen(
+            tracedPoints: widget.tracedPoints,
+            copiedPoints: widget.copiedPoints,
+            originalSize: widget.originalSize,
+            adjustedPosition: Offset(normalizedDx, normalizedDy),
+            adjustedScale: copiedImageScale,
+            evaluationResult: _evaluationResult!,
+          ),
+        ),
+      );
+    } catch (e) {
+      Navigator.of(context).pop(); // ローディング閉じる
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("エラーが発生しました: $e")),
+      );
+    }
   }
+
 
 
   @override

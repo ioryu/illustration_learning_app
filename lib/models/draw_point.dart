@@ -4,7 +4,7 @@ class DrawPoint {
   final Offset? offset;
   final double strokeWidth;
 
-  DrawPoint(this.offset, {this.strokeWidth = 4.0});
+  DrawPoint(this.offset, {this.strokeWidth = 1.0});
 
   Map<String, dynamic> toJson() {
     return {
