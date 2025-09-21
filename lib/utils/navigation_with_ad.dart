@@ -15,7 +15,7 @@ void loadAd() {
   );
 }
 
-/// ✅ 3回ごとに広告を表示する（サーバーCold状態には依存しない）
+/// ✅ 2回ごとに広告を表示する（サーバーCold状態には依存しない）
 Future<void> navigateWithAdEvery3rdTime({
   required BuildContext context,
   required Future<Widget> Function() destinationBuilder,
@@ -57,7 +57,7 @@ Future<void> navigateWithAdEvery3rdTime({
     Navigator.pop(context); // ローディング解除
 
     final adService = _adService;
-    final shouldShowAd = adService.isAdAvailable && (_navigateCallCount % 3 == 0);
+    final shouldShowAd = adService.isAdAvailable && (_navigateCallCount % 2 == 0);
 
     if (shouldShowAd) {
       adService.showAd(
@@ -70,7 +70,7 @@ Future<void> navigateWithAdEvery3rdTime({
           );
         },
       );
-    } else if (_navigateCallCount % 3 == 0) {
+    } else if (_navigateCallCount % 2 == 0) {
       await showDialog(
         context: context,
         builder: (context) => AlertDialog(

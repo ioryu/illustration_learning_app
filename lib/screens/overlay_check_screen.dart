@@ -78,7 +78,7 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
       // タイムアウトを10秒に設定
       final response = await http
           .post(
-            Uri.parse("https://example.com/evaluate"), // 実際のサーバURLに置き換える
+            Uri.parse("https://illustrationevaluation.onrender.com/evaluate"), // 実際のサーバURLに置き換える
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(data),
           )
@@ -114,48 +114,45 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
   }
 
   void _navigateToEvaluation() async {
-    // 1. ローディング表示（画面中央）
+    // まず評価処理はそのまま
     showDialog(
       context: context,
-      barrierDismissible: false, // タップで閉じない
-      builder: (context) {
-        return const Center(
-          child: CircularProgressIndicator(),
-        );
-      },
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
-      // 2. 評価リクエストを送信
       final success = await _sendEvaluationRequest();
 
       if (!success || _evaluationResult == null) {
         Navigator.of(context).pop(); // ローディング閉じる
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("評価に失敗しました")),
+          const SnackBar(content: Text("評価に失敗しました。時間をおいて再度お試しください。")),
         );
         return;
       }
 
-      // 3. ローディング閉じて画面遷移
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(); // ローディング閉じる
 
       final normalizedDx = copiedImagePosition.dx - (_currentCanvasSize!.width - widget.originalSize.width) / 2;
       final normalizedDy = copiedImagePosition.dy - (_currentCanvasSize!.height - widget.originalSize.height) / 2;
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => EvaluationScreen(
+      // ★広告付き遷移を呼び出す
+      await navigateWithAdEvery3rdTime(
+        context: context,
+        destinationBuilder: () async {
+          // 本来の画面遷移処理をここに渡す
+          return EvaluationScreen(
             tracedPoints: widget.tracedPoints,
             copiedPoints: widget.copiedPoints,
             originalSize: widget.originalSize,
             adjustedPosition: Offset(normalizedDx, normalizedDy),
             adjustedScale: copiedImageScale,
             evaluationResult: _evaluationResult!,
-          ),
-        ),
+          );
+        },
       );
+
     } catch (e) {
       Navigator.of(context).pop(); // ローディング閉じる
       ScaffoldMessenger.of(context).showSnackBar(
@@ -163,6 +160,7 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
       );
     }
   }
+
 
 
 
@@ -275,7 +273,7 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
           const Padding(
             padding: EdgeInsets.only(right: 8.0),
             child: Text(
-              '※3回に1回程度\n広告が流れることがあります',
+              '※2回に1回程度\n広告が流れることがあります',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ),
