@@ -107,7 +107,7 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFFFFFBF0),
         title: const Text('評価失敗'),
-        content: const Text('サーバーでエラーが発生しました。時間をおいて再度お試しください。'),
+        content: const Text('サーバーでエラーが発生しました。3分くらいして再度お試しください。'),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
       ),
     );
@@ -127,7 +127,7 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
       if (!success || _evaluationResult == null) {
         Navigator.of(context).pop(); // ローディング閉じる
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("評価に失敗しました。時間をおいて再度お試しください。")),
+          const SnackBar(content: Text("評価に失敗しました。3分くらいして再度お試しください。")),
         );
         return;
       }
@@ -273,7 +273,7 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
           const Padding(
             padding: EdgeInsets.only(right: 8.0),
             child: Text(
-              '※2回に1回程度\n広告が流れることがあります',
+              '※広告が流れることがあります',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ),

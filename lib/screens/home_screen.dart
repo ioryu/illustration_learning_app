@@ -78,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // 機能ボタン（カード風）
             _buildMenuCard(
               icon: Icons.auto_fix_high,
-              label: '線画抽出（模写モード）',
+              label: 'トレースと模写',
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const EdgeDetectionScreen()),
