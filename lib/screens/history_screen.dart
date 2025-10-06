@@ -68,7 +68,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Map<String, List<Map<String, dynamic>>> _groupByDate() {
     Map<String, List<Map<String, dynamic>>> grouped = {};
     for (var item in _historyData) {
-      print(item['created_at']);
+      // print(item['created_at']);
       final createdAt = item['created_at'];
       if (createdAt == null) continue;
 
@@ -82,7 +82,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       // 日付だけ整形
       final key = DateFormat('yyyy/MM/dd').format(dateJst);
 
-      print('UTC: $createdAt -> JST: $date');
+      // print('UTC: $createdAt -> JST: $date');
 
 
       grouped.putIfAbsent(key, () => []);
@@ -203,9 +203,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
   // --- LineChart用データ（施行ごとの点数） ---
   List<FlSpot> lineSpots = [];
   for (int i = 0; i < _historyData.length; i++) {
-    double score = _historyData[i]['total_score']?.toDouble() ?? 0.0;
-    lineSpots.add(FlSpot(i.toDouble(), score)); // 横軸 = 施行番号
+    final reversedIndex = _historyData.length - 1 - i;
+    double score = _historyData[reversedIndex]['total_score']?.toDouble() ?? 0.0;
+    lineSpots.add(FlSpot(i.toDouble(), score));
   }
+
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,

@@ -8,6 +8,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../utils/navigation_with_ad.dart';
 import 'dart:async';  
+import '../services/server_service.dart';
+
 
 class OverlayCheckScreen extends StatefulWidget {
   final List<DrawPoint?> tracedPoints;
@@ -41,15 +43,21 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
     super.initState();
 
     // 画面描画後にサーバ通信
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _sendEvaluationRequest().then((success) {
-        if (success) {
-          print("サーバ通信成功");
-        } else {
-          print("サーバ通信失敗");
-        }
-      });
+    // サーバのウォームアップ（非同期で投げっぱなし）
+    ServerService.isServerCold().then((cold) {
+      print('起動時のサーバ応答: ${cold ? "スリープ状態" : "起動済み"}');
+    }).catchError((e) {
+      print('起動時ping失敗: $e');
     });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _sendEvaluationRequest().then((success) {
+    //     if (success) {
+    //       print("サーバ通信成功");
+    //     } else {
+    //       print("サーバ通信失敗");
+    //     }
+    //   });
+    // });
   }
 
   Future<bool> _sendEvaluationRequest() async {
@@ -73,6 +81,20 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
       'adjustedPosition': {'dx': normalizedDx, 'dy': normalizedDy},
       'adjustedScale': copiedImageScale,
     };
+    bool serverReady = false;
+
+    try {
+      serverReady = !(await ServerService.isServerCold(timeoutSeconds: 5));
+      print('サーバ応答: ${serverReady ? "起動済み" : "スリープ状態"}');
+    } catch (e) {
+      print('サーバping失敗: $e');
+      serverReady = false;
+    }
+
+    if (!serverReady) {
+      print("サーバが起動していないため送信しません");
+      return false; // ここで処理を中断
+    }
 
     try {
       // タイムアウトを10秒に設定
@@ -82,7 +104,7 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(data),
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         _evaluationResult = jsonDecode(response.body);
@@ -113,8 +135,12 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
     );
   }
 
+  bool _isSending = false;
+
   void _navigateToEvaluation() async {
-    // まず評価処理はそのまま
+    if (_isSending) return; // 送信中は無視
+    _isSending = true;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -124,24 +150,22 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
     try {
       final success = await _sendEvaluationRequest();
 
+      Navigator.of(context).pop(); // ローディング閉じる
+
       if (!success || _evaluationResult == null) {
-        Navigator.of(context).pop(); // ローディング閉じる
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("評価に失敗しました。3分くらいして再度お試しください。")),
         );
+        _isSending = false;
         return;
       }
-
-      Navigator.of(context).pop(); // ローディング閉じる
 
       final normalizedDx = copiedImagePosition.dx - (_currentCanvasSize!.width - widget.originalSize.width) / 2;
       final normalizedDy = copiedImagePosition.dy - (_currentCanvasSize!.height - widget.originalSize.height) / 2;
 
-      // ★広告付き遷移を呼び出す
       await navigateWithAdEvery3rdTime(
         context: context,
         destinationBuilder: () async {
-          // 本来の画面遷移処理をここに渡す
           return EvaluationScreen(
             tracedPoints: widget.tracedPoints,
             copiedPoints: widget.copiedPoints,
@@ -158,8 +182,11 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("エラーが発生しました: $e")),
       );
+    } finally {
+      _isSending = false; // 最後に必ずフラグ解除
     }
   }
+
 
 
 
