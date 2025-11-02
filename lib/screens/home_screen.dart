@@ -23,16 +23,30 @@ class _HomeScreenState extends State<HomeScreen> {
   final AdService _adService = AdService();
   bool _isLoading = false;
   bool _isAdLoading = false;
+  bool _isServerWarmingUp = true; // ★ サーバ起動待ちフラグ追加
 
   @override
   void initState() {
     super.initState();
     _loadAd();// ← 広告読み込み
     // サーバのウォームアップ（非同期で投げっぱなし）
-    ServerService.isServerCold().then((cold) {
+    // サーバウォームアップ
+    ServerService.isServerCold().then((cold) async {
       print('起動時のサーバ応答: ${cold ? "スリープ状態" : "起動済み"}');
+
+      // ★ 起動済みでなければ15秒待機（Renderの起動待ち）
+      if (cold) {
+        await Future.delayed(const Duration(seconds: 15));
+      }
+
+      setState(() {
+        _isServerWarmingUp = false; // 起動完了
+      });
     }).catchError((e) {
       print('起動時ping失敗: $e');
+      setState(() {
+        _isServerWarmingUp = false; // 失敗しても一応解除
+      });
     });
   }
 
@@ -87,14 +101,17 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             _buildMenuCard(
               icon: Icons.history,
-              label: '評価履歴を見る',
-              onTap: () {
-                navigateIfServerWarm(
-                  context: context,
-                  destination: const HistoryScreen(),
-                );
-              },
+              label: _isServerWarmingUp ? 'サーバ起動中...' : '評価履歴を見る',
+              onTap: _isServerWarmingUp
+                  ? null // ★ 起動中は無効
+                  : () {
+                      navigateIfServerWarm(
+                        context: context,
+                        destination: const HistoryScreen(),
+                      );
+                    },
             ),
+
 
             const Spacer(),
             TextButton(
@@ -125,42 +142,48 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMenuCard({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Ink(
-        decoration: BoxDecoration(
-          color: Colors.blue.shade50,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 6,
-              offset: Offset(0, 3),
+  required IconData icon,
+  required String label,
+  required VoidCallback? onTap, // ← nullableに
+}) {
+  final isDisabled = onTap == null;
+
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(16),
+    child: Ink(
+      decoration: BoxDecoration(
+        color: isDisabled ? Colors.grey.shade300 : Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+        child: Row(
+          children: [
+            Icon(icon, size: 32, color: isDisabled ? Colors.grey : Colors.blueAccent),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: isDisabled ? Colors.grey : Colors.black,
+              ),
             ),
+            const Spacer(),
+            if (!isDisabled)
+              const Icon(Icons.arrow_forward_ios, size: 16),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-          child: Row(
-            children: [
-              Icon(icon, size: 32, color: Colors.blueAccent),
-              const SizedBox(width: 16),
-              Text(
-                label,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              const Spacer(),
-              const Icon(Icons.arrow_forward_ios, size: 16),
-            ],
-          ),
-        ),
       ),
-    );
-  }
-
+    ),
+  );
+}
 }

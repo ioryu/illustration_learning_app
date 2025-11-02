@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../models/draw_point.dart';
 import '../painters/drawing_painter.dart';
 import 'overlay_check_screen.dart';
+import '../services/server_service.dart';
+
+
 
 class CopyScreen extends StatefulWidget {
   final List<DrawPoint?> tracedPoints;
@@ -26,6 +29,7 @@ class _CopyScreenState extends State<CopyScreen> {
   int currentLayerIndex = 0;
   Offset _fabPosition = Offset.zero; // 初期位置（必要に応じて調整）
 
+  bool _isServerWarmingUp = true; // ★ サーバ起動中フラグ
 
   bool isEraserMode = false;
   bool isSwapped = false;
@@ -40,17 +44,34 @@ class _CopyScreenState extends State<CopyScreen> {
     super.initState();
     currentStrokeWidth = widget.currentStrokeWidth;
 
+    // ★ サーバウォームアップ（非同期で投げっぱなし）
+    ServerService.isServerCold().then((cold) async {
+      print('CopyScreenサーバ応答: ${cold ? "スリープ状態" : "起動済み"}');
+
+      if (cold) {
+        // coldなら待機（Renderなどのスリープ解除待ち）
+        await Future.delayed(const Duration(seconds: 10));
+      }
+
+      setState(() {
+        _isServerWarmingUp = false;
+      });
+    }).catchError((e) {
+      print('CopyScreen ping失敗: $e');
+      setState(() => _isServerWarmingUp = false);
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final screenSize = MediaQuery.of(context).size;
       setState(() {
         _fabPosition = Offset(
-          screenSize.width - 120, // ボタン幅 + 余白
-          screenSize.height - 250, // AppBar + BottomBar + 余白分
+          screenSize.width - 120,
+          screenSize.height - 250,
         );
-        // print('初期FAB位置: $_fabPosition'); // ← ここで出力
       });
     });
   }
+
 
 
   void _handlePanUpdate(BuildContext context, DragUpdateDetails details) {

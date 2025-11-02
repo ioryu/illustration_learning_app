@@ -74,8 +74,8 @@ Future<void> navigateWithAdEvery3rdTime({
       await showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('広告の準備中'),
-          content: const Text('広告を準備中です。3分くらいしてから再度お試しください。'),
+          title: const Text('準備中'),
+          content: const Text('準備中です。3分くらいしてから再度お試しください。'),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
           ],

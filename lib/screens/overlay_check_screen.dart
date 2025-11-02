@@ -9,6 +9,8 @@ import 'package:http/http.dart' as http;
 import '../utils/navigation_with_ad.dart';
 import 'dart:async';  
 import '../services/server_service.dart';
+import 'home_screen.dart';
+
 
 
 class OverlayCheckScreen extends StatefulWidget {
@@ -305,6 +307,7 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
             ),
           ),
           const SizedBox(height: 4),
+          // 評価ボタン
           FloatingActionButton.extended(
             onPressed: _navigateToEvaluation,
             icon: const Icon(Icons.assessment),
@@ -312,8 +315,43 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
             backgroundColor: Colors.blueAccent,
             foregroundColor: Colors.white,
           ),
+          const SizedBox(height: 12),
+          // ホームに戻るボタン
+          FloatingActionButton.extended(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: const Color(0xFFFFFBF0),
+                  title: const Text("ホームに戻りますか？"),
+                  content: const Text("一度ホームに戻るとこの画面には戻れません。よろしいですか？"),
+                  actions: [
+                    TextButton(
+                      child: const Text("キャンセル"),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    TextButton(
+                      child: const Text("戻る"),
+                      onPressed: () {
+                        Navigator.of(context).pop(); // ダイアログを閉じる
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const HomeScreen()),
+                          (route) => false,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+            icon: const Icon(Icons.home),
+            label: const Text("ホームに戻る"),
+            backgroundColor: Colors.orangeAccent,
+            foregroundColor: Colors.white,
+          ),
         ],
       ),
+
 
 
     );
