@@ -129,7 +129,8 @@ Future<void> navigateIfServerWarm({
       return;
     }
 
-    final cold = await ServerService.isServerCold();
+    // final cold = await ServerService.isServerCold();
+    final cold = false;
     Navigator.pop(context); // ローディング解除
 
     if (cold) {

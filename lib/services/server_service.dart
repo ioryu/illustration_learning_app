@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 class ServerService {
   /// サーバがスリープ状態かどうか確認
   /// timeoutSeconds はタイムアウトの秒数（デフォルト10秒）
-  static Future<bool> isServerCold({int timeoutSeconds = 10}) async {
+  static Future<bool> isServerCold({int timeoutSeconds = 15}) async {
     try {
       final stopwatch = Stopwatch()..start();
 

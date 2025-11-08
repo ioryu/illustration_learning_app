@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../widgets/bottom_banner_ad.dart';
 import '../utils/user_utils.dart';
+import 'dart:async';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({Key? key}) : super(key: key);
@@ -37,19 +38,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
       String uuid = await getOrCreateUUID(); // UUID取得
       final url = Uri.parse(
-          'https://illustrationevaluation.onrender.com/history?uuid=$uuid');
-      final response = await http.get(url);
+        'https://illustrationevaluation.onrender.com/history?uuid=$uuid',
+      );
+
+      // タイムアウトを10秒に設定
+      final response = await http.get(url).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          // タイムアウト時は例外を投げる
+          throw TimeoutException('サーバー応答がありません');
+        },
+      );
+
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (!mounted) return;
         setState(() {
-          _historyData =
-              List<Map<String, dynamic>>.from(data['history'] ?? []);
+          _historyData = List<Map<String, dynamic>>.from(data['history'] ?? []);
           _isLoading = false;
         });
       } else {
-        if (!mounted) return;
         setState(() {
           _error = 'サーバーエラー: ${response.statusCode}';
           _isLoading = false;
@@ -63,6 +73,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       });
     }
   }
+
 
   /// 日付ごとに履歴をまとめる
   Map<String, List<Map<String, dynamic>>> _groupByDate() {

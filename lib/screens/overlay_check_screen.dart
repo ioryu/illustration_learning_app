@@ -85,15 +85,21 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
     };
     bool serverReady = false;
 
-    try {
-      serverReady = !(await ServerService.isServerCold(timeoutSeconds: 5));
-      print('サーバ応答: ${serverReady ? "起動済み" : "スリープ状態"}');
-    } catch (e) {
-      print('サーバping失敗: $e');
-      serverReady = false;
-    }
-
+    // try {
+    //   serverReady = !(await ServerService.isServerCold(timeoutSeconds: 10));
+    //   print('サーバ応答: ${serverReady ? "起動済み" : "スリープ状態"}');
+    // } catch (e) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //       SnackBar(content: Text("サーバping失敗: $e")),
+    //     );
+    //   print('サーバping失敗: $e');
+    //   serverReady = false;
+    // }
+  serverReady = true; // とりあえず常に送信する
     if (!serverReady) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("サーバが起動していないため送信しません")),
+        );
       print("サーバが起動していないため送信しません");
       return false; // ここで処理を中断
     }
@@ -106,41 +112,40 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(data),
           )
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         _evaluationResult = jsonDecode(response.body);
         return true;
       } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("サーバエラー: ${response.statusCode}")),
+        );
         print("サーバエラー: ${response.statusCode}");
         return false;
       }
     } on TimeoutException catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("サーバ応答がタイムアウトしました")),
+        );
       print("サーバ応答がタイムアウトしました");
       return false;
     } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("サーバ通信中にエラー発生: $e")),
+        );
       print("サーバ通信中にエラー発生: $e");
       return false;
     }
   }
 
 
-  void _showEvaluationErrorDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFFFFFBF0),
-        title: const Text('評価失敗'),
-        content: const Text('サーバーでエラーが発生しました。3分くらいして再度お試しください。'),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-      ),
-    );
-  }
-
   bool _isSending = false;
 
   void _navigateToEvaluation() async {
-    if (_isSending) return; // 送信中は無視
+    if (_isSending) 
+    
+    return; // 送信中は無視
     _isSending = true;
 
     showDialog(
