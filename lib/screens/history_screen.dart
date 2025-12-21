@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../widgets/bottom_banner_ad.dart';
 import '../utils/user_utils.dart';
 import 'dart:async';
+import '../repositories/local_history_repository.dart'; // パスは実際の場所に合わせて調整
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({Key? key}) : super(key: key);
@@ -20,14 +21,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
   String? _error;
 
   bool _showBarGraph = true; // true: 日付ごとの試行回数、false: 試行ごとの点数推移
+  final _historyRepository = LocalHistoryRepository();
 
   @override
   void initState() {
     super.initState();
     _fetchHistory();
   }
+  int _totalCount = 0;
 
-  /// サーバーから履歴データを取得
   Future<void> _fetchHistory() async {
     try {
       if (!mounted) return;
@@ -37,42 +39,74 @@ class _HistoryScreenState extends State<HistoryScreen> {
       });
 
       String uuid = await getOrCreateUUID(); // UUID取得
-      final url = Uri.parse(
-        'https://illustrationevaluation.onrender.com/history?uuid=$uuid',
-      );
-
-      // タイムアウトを10秒に設定
-      final response = await http.get(url).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          // タイムアウト時は例外を投げる
-          throw TimeoutException('サーバー応答がありません');
-        },
-      );
-
+      print('UUID: $uuid');
+      final data = await _historyRepository.fetchHistory(uuid);
+      print('fetchHistory result: $data');
       if (!mounted) return;
+      setState(() {
+        _historyData = List<Map<String, dynamic>>.from(data['history'] ?? []);
+        _totalCount = data['total_count'] ?? _historyData.length;
+        _isLoading = false;
+      });
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (!mounted) return;
-        setState(() {
-          _historyData = List<Map<String, dynamic>>.from(data['history'] ?? []);
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _error = 'サーバーエラー: ${response.statusCode}';
-          _isLoading = false;
-        });
-      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = '通信エラー: $e';
+        _error = '履歴取得エラー: $e';
         _isLoading = false;
       });
     }
   }
+
+
+
+  /// サーバーから履歴データを取得
+  // Future<void> _fetchHistory() async {
+  //   try {
+  //     if (!mounted) return;
+  //     setState(() {
+  //       _isLoading = true;
+  //       _error = null;
+  //     });
+
+  //     String uuid = await getOrCreateUUID(); // UUID取得
+  //     final url = Uri.parse(
+  //       'https://illustrationevaluation.onrender.com/history?uuid=$uuid',
+  //     );
+
+  //     // タイムアウトを10秒に設定
+  //     final response = await http.get(url).timeout(
+  //       const Duration(seconds: 15),
+  //       onTimeout: () {
+  //         // タイムアウト時は例外を投げる
+  //         throw TimeoutException('サーバー応答がありません');
+  //       },
+  //     );
+
+  //     if (!mounted) return;
+
+  //     if (response.statusCode == 200) {
+  //       final data = json.decode(response.body);
+  //       if (!mounted) return;
+  //       setState(() {
+  //         _historyData = List<Map<String, dynamic>>.from(data['history'] ?? []);
+  //         _isLoading = false;
+  //       });
+  //     } else {
+  //       setState(() {
+  //         _error = 'サーバーエラー: ${response.statusCode}';
+  //         _isLoading = false;
+  //       });
+  //     }
+  //   } catch (e) {
+  //     if (!mounted) return;
+  //     setState(() {
+  //       _error = '通信エラー: $e';
+  //       _isLoading = false;
+  //     });
+  //   }
+  // }
+  
 
 
   /// 日付ごとに履歴をまとめる
@@ -175,9 +209,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     const Icon(Icons.history, size: 28, color: Colors.blue),
                     const SizedBox(height: 8),
                     const Text('全試行回数', style: TextStyle(fontSize: 12)),
-                    Text('${_historyData.length}',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text('$_totalCount',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
+
+                    // Text('${_historyData.length}',
+                  //       style: const TextStyle(
+                  //           fontSize: 18, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),

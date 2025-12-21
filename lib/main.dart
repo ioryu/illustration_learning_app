@@ -6,11 +6,15 @@ import 'utils/user_utils.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart'; // 👈 追加
+import 'package:hive_flutter/hive_flutter.dart';
+
 
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 👇【追加】Hive 初期化　ローカルストレージ用
+  await Hive.initFlutter();
 
   // Mobile Ads SDK 初期化
   await MobileAds.instance.initialize();

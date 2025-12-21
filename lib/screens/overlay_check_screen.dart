@@ -10,6 +10,10 @@ import '../utils/navigation_with_ad.dart';
 import 'dart:async';  
 import '../services/server_service.dart';
 import 'home_screen.dart';
+import '../services/local_evaluation_service.dart';
+import '../repositories/local_history_repository.dart';
+
+
 
 
 
@@ -39,18 +43,21 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
   bool _isInitialized = false;
   Size? _currentCanvasSize;
   Map<String, dynamic>? _evaluationResult;
+  late final LocalEvaluationService _localEvaluationService; // ← ★ここ
 
   @override
   void initState() {
     super.initState();
+    _localEvaluationService = LocalEvaluationService(LocalHistoryRepository());
 
     // 画面描画後にサーバ通信
     // サーバのウォームアップ（非同期で投げっぱなし）
-    ServerService.isServerCold().then((cold) {
-      print('起動時のサーバ応答: ${cold ? "スリープ状態" : "起動済み"}');
-    }).catchError((e) {
-      print('起動時ping失敗: $e');
-    });
+    // ServerService.isServerCold().then((cold) {
+    //   print('起動時のサーバ応答: ${cold ? "スリープ状態" : "起動済み"}');
+    // }).catchError((e) {
+    //   print('起動時ping失敗: $e');
+    // });
+
     // WidgetsBinding.instance.addPostFrameCallback((_) {
     //   _sendEvaluationRequest().then((success) {
     //     if (success) {
@@ -61,83 +68,112 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
     //   });
     // });
   }
-
   Future<bool> _sendEvaluationRequest() async {
-    String uuid = await getOrCreateUUID();
     if (_currentCanvasSize == null) return false;
 
-    final normalizedDx = copiedImagePosition.dx - (_currentCanvasSize!.width - widget.originalSize.width) / 2;
-    final normalizedDy = copiedImagePosition.dy - (_currentCanvasSize!.height - widget.originalSize.height) / 2;
-
-    final tracedJson = widget.tracedPoints.map((p) => p?.toJson()).toList();
-    final copiedJson = widget.copiedPoints.map((p) => p?.toJson()).toList();
-
-    final Map<String, dynamic> data = {
-      'uuid': uuid,
-      'tracedPoints': tracedJson,
-      'copiedPoints': copiedJson,
-      'originalSize': {
-        'width': widget.originalSize.width,
-        'height': widget.originalSize.height,
-      },
-      'adjustedPosition': {'dx': normalizedDx, 'dy': normalizedDy},
-      'adjustedScale': copiedImageScale,
-    };
-    bool serverReady = false;
-
-    // try {
-    //   serverReady = !(await ServerService.isServerCold(timeoutSeconds: 10));
-    //   print('サーバ応答: ${serverReady ? "起動済み" : "スリープ状態"}');
-    // } catch (e) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //       SnackBar(content: Text("サーバping失敗: $e")),
-    //     );
-    //   print('サーバping失敗: $e');
-    //   serverReady = false;
-    // }
-  serverReady = true; // とりあえず常に送信する
-    if (!serverReady) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("サーバが起動していないため送信しません")),
-        );
-      print("サーバが起動していないため送信しません");
-      return false; // ここで処理を中断
-    }
+    final normalizedDx =
+        copiedImagePosition.dx -
+        (_currentCanvasSize!.width - widget.originalSize.width) / 2;
+    final normalizedDy =
+        copiedImagePosition.dy -
+        (_currentCanvasSize!.height - widget.originalSize.height) / 2;
 
     try {
-      // タイムアウトを10秒に設定
-      final response = await http
-          .post(
-            Uri.parse("https://illustrationevaluation.onrender.com/evaluate"), // 実際のサーバURLに置き換える
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(data),
-          )
-          .timeout(const Duration(seconds: 15));
+      String uuid = await getOrCreateUUID();
+      final result = await _localEvaluationService.evaluate(
+        tracedPoints: widget.tracedPoints,
+        copiedPoints: widget.copiedPoints,
+        originalSize: widget.originalSize,
+        adjustedPosition: Offset(normalizedDx, normalizedDy),
+        adjustedScale: copiedImageScale,
+        uuid: uuid,
+      );
 
-      if (response.statusCode == 200) {
-        _evaluationResult = jsonDecode(response.body);
-        return true;
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("サーバエラー: ${response.statusCode}")),
-        );
-        print("サーバエラー: ${response.statusCode}");
-        return false;
-      }
-    } on TimeoutException catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("サーバ応答がタイムアウトしました")),
-        );
-      print("サーバ応答がタイムアウトしました");
-      return false;
+      _evaluationResult = result;
+      return true;
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("サーバ通信中にエラー発生: $e")),
-        );
-      print("サーバ通信中にエラー発生: $e");
+      debugPrint("ローカル評価エラー: $e");
       return false;
     }
   }
+
+
+  // Future<bool> _sendEvaluationRequest() async {
+  //   String uuid = await getOrCreateUUID();
+  //   if (_currentCanvasSize == null) return false;
+
+  //   final normalizedDx = copiedImagePosition.dx - (_currentCanvasSize!.width - widget.originalSize.width) / 2;
+  //   final normalizedDy = copiedImagePosition.dy - (_currentCanvasSize!.height - widget.originalSize.height) / 2;
+
+  //   final tracedJson = widget.tracedPoints.map((p) => p?.toJson()).toList();
+  //   final copiedJson = widget.copiedPoints.map((p) => p?.toJson()).toList();
+
+  //   final Map<String, dynamic> data = {
+  //     'uuid': uuid,
+  //     'tracedPoints': tracedJson,
+  //     'copiedPoints': copiedJson,
+  //     'originalSize': {
+  //       'width': widget.originalSize.width,
+  //       'height': widget.originalSize.height,
+  //     },
+  //     'adjustedPosition': {'dx': normalizedDx, 'dy': normalizedDy},
+  //     'adjustedScale': copiedImageScale,
+  //   };
+  //   bool serverReady = false;
+
+  //   // try {
+  //   //   serverReady = !(await ServerService.isServerCold(timeoutSeconds: 10));
+  //   //   print('サーバ応答: ${serverReady ? "起動済み" : "スリープ状態"}');
+  //   // } catch (e) {
+  //   //   ScaffoldMessenger.of(context).showSnackBar(
+  //   //       SnackBar(content: Text("サーバping失敗: $e")),
+  //   //     );
+  //   //   print('サーバping失敗: $e');
+  //   //   serverReady = false;
+  //   // }
+  // serverReady = true; // とりあえず常に送信する
+  //   if (!serverReady) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text("サーバが起動していないため送信しません")),
+  //       );
+  //     print("サーバが起動していないため送信しません");
+  //     return false; // ここで処理を中断
+  //   }
+
+  //   try {
+  //     // タイムアウトを10秒に設定
+  //     final response = await http
+  //         .post(
+  //           Uri.parse("https://illustrationevaluation.onrender.com/evaluate"), // 実際のサーバURLに置き換える
+  //           headers: {'Content-Type': 'application/json'},
+  //           body: jsonEncode(data),
+  //         )
+  //         .timeout(const Duration(seconds: 15));
+
+  //     if (response.statusCode == 200) {
+  //       _evaluationResult = jsonDecode(response.body);
+  //       return true;
+  //     } else {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text("サーバエラー: ${response.statusCode}")),
+  //       );
+  //       print("サーバエラー: ${response.statusCode}");
+  //       return false;
+  //     }
+  //   } on TimeoutException catch (_) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(content: Text("サーバ応答がタイムアウトしました")),
+  //       );
+  //     print("サーバ応答がタイムアウトしました");
+  //     return false;
+  //   } catch (e) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text("サーバ通信中にエラー発生: $e")),
+  //       );
+  //     print("サーバ通信中にエラー発生: $e");
+  //     return false;
+  //   }
+  // }
 
 
   bool _isSending = false;
@@ -314,6 +350,7 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
           const SizedBox(height: 4),
           // 評価ボタン
           FloatingActionButton.extended(
+            heroTag: 'evaluate_fab',
             onPressed: _navigateToEvaluation,
             icon: const Icon(Icons.assessment),
             label: const Text('評価する'),
@@ -323,6 +360,7 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
           const SizedBox(height: 12),
           // ホームに戻るボタン
           FloatingActionButton.extended(
+            heroTag: 'home_fab',
             onPressed: () {
               showDialog(
                 context: context,

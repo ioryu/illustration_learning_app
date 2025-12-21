@@ -1,6 +1,7 @@
 // lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'edge_detection_screen.dart';
+import 'marker_paint_screen.dart';
 import 'history_screen.dart';
 import '../widgets/bottom_banner_ad.dart';
 import '../services/ad_service.dart';
@@ -99,6 +100,19 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            
+            // 既存の _buildMenuCard 呼び出しの下に追加
+            _buildMenuCard(
+              icon: Icons.edit, // マーカー塗り用のアイコン
+              label: 'マーカー塗りから模写',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MarkerPaintScreen()),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            
             _buildMenuCard(
               icon: Icons.history,
               label: _isServerWarmingUp ? 'サーバ起動中...' : '評価履歴を見る',
