@@ -179,16 +179,22 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
   bool _isSending = false;
 
   void _navigateToEvaluation() async {
-    if (_isSending) 
-    
-    return; // 送信中は無視
-    _isSending = true;
+    if (_isSending) return;
 
+    // ★ ① UIを即更新（ここが一番重要）
+    setState(() {
+      _isSending = true;
+    });
+
+    // ★ ② ローディングを即表示
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
+
+    // ★ ③ 1フレームUIを返す
+    await Future.delayed(Duration.zero);
 
     try {
       final success = await _sendEvaluationRequest();
@@ -197,14 +203,19 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
 
       if (!success || _evaluationResult == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("評価に失敗しました。3分くらいして再度お試しください。")),
+          const SnackBar(
+            content: Text("評価に失敗しました。3分くらいして再度お試しください。"),
+          ),
         );
-        _isSending = false;
         return;
       }
 
-      final normalizedDx = copiedImagePosition.dx - (_currentCanvasSize!.width - widget.originalSize.width) / 2;
-      final normalizedDy = copiedImagePosition.dy - (_currentCanvasSize!.height - widget.originalSize.height) / 2;
+      final normalizedDx =
+          copiedImagePosition.dx -
+          (_currentCanvasSize!.width - widget.originalSize.width) / 2;
+      final normalizedDy =
+          copiedImagePosition.dy -
+          (_currentCanvasSize!.height - widget.originalSize.height) / 2;
 
       await navigateWithAdEvery3rdTime(
         context: context,
@@ -219,16 +230,21 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
           );
         },
       );
-
     } catch (e) {
-      Navigator.of(context).pop(); // ローディング閉じる
+      Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("エラーが発生しました: $e")),
       );
     } finally {
-      _isSending = false; // 最後に必ずフラグ解除
+      // ★ ④ 最後に必ずUI更新
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
+      }
     }
   }
+
 
 
 
@@ -351,12 +367,22 @@ class _OverlayCheckScreenState extends State<OverlayCheckScreen> {
           // 評価ボタン
           FloatingActionButton.extended(
             heroTag: 'evaluate_fab',
-            onPressed: _navigateToEvaluation,
-            icon: const Icon(Icons.assessment),
-            label: const Text('評価する'),
-            backgroundColor: Colors.blueAccent,
+            onPressed: _isSending ? null : _navigateToEvaluation,
+            icon: _isSending
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.assessment),
+            label: Text(_isSending ? '評価中…' : '評価する'),
+            backgroundColor: _isSending ? Colors.grey : Colors.blueAccent,
             foregroundColor: Colors.white,
           ),
+
           const SizedBox(height: 12),
           // ホームに戻るボタン
           FloatingActionButton.extended(
