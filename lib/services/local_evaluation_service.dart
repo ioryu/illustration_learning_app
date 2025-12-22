@@ -90,9 +90,9 @@ class LocalEvaluationService {
     // ----------------------------
     // 7. 合成
     // ----------------------------
-    const wIou = 0.3;
-    const wSsim = 0.4;
-    const wShape = 0.3;
+    const wIou = 0.5;
+    const wSsim = 0.6;
+    const wShape = 0.5;
     double total = wIou * iouScore + wSsim * ssimScore + wShape * shapeScore;
     total = (total * 100).clamp(0.0, 100.0);
     return double.parse(total.toStringAsFixed(2));
