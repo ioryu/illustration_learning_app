@@ -104,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // 既存の _buildMenuCard 呼び出しの下に追加
             _buildMenuCard(
               icon: Icons.edit, // マーカー塗り用のアイコン
-              label: 'マーカー塗りから模写',
+              label: '模写のみ',
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const MarkerPaintScreen()),
